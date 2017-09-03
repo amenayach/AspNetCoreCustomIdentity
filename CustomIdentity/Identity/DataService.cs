@@ -11,6 +11,44 @@ namespace CustomIdentity.Identity
     {
         private List<ApplicationUser> _users = new List<ApplicationUser>();
 
+        public DataService()
+        {
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "data.json");
+
+            if (File.Exists(filePath))
+            {
+                var data = File.ReadAllText(filePath);
+
+                if (!string.IsNullOrWhiteSpace(data))
+                {
+                    var array = JArray.Parse(data);
+
+                    foreach (JToken token in array)
+                    {
+                        _users.Add(new ApplicationUser()
+                        {
+                            Id = token["Id"].ToString(),
+                            UserId = token.GetValue<string>("UserId"),
+                            UserName = token.GetValue<string>("UserName"),
+                            Email = token.GetValue<string>("Email"),
+                            PhoneNumber = token.GetValue<string>("PhoneNumber"),
+                            PhoneNumberConfirmed = token.GetValue<bool>("PhoneNumberConfirmed"),
+                            PasswordHash = token.GetValue<string>("PasswordHash"),
+                            TwoFactorEnabled = token.GetValue<bool>("TwoFactorEnabled"),
+                            City = token.GetValue<string>("City"),
+                            Claims = ((JArray)token["Claims"])
+                                .Select(m =>
+                                    new Claim(
+                                        m.GetValue<string>("Type"),
+                                        m.GetValue<string>("Value"),
+                                        m.GetValue<string>("ValueType"))).ToList()
+                        });
+                    }
+
+                }
+            }
+        }
+
         public ApplicationUser GetUser(Func<ApplicationUser, bool> predicate)
         {
             return _users.FirstOrDefault(predicate);
@@ -95,6 +133,19 @@ namespace CustomIdentity.Identity
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), "data.json");
 
             File.WriteAllText(filePath, JArray.FromObject(_users).ToString());
+        }
+
+    }
+
+    public static class JsonExtensions
+    {
+        public static T GetValue<T>(this JToken token, string key)
+        {
+            if (token[key] == null)
+            {
+                return default(T);
+            }
+            return token.Value<T>(key);
         }
     }
 }
