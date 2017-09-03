@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 
 namespace CustomIdentity.Identity
 {
-    public class UserStore : IUserStore<ApplicationUser>, 
+    public class UserStore : IUserStore<ApplicationUser>,
                                         IRoleStore<ApplicationRole>,
-                                        IUserPasswordStore<ApplicationUser>
+                                        IUserPasswordStore<ApplicationUser>,
+                                        IUserClaimStore<ApplicationUser>
     {
 
         private readonly DataService _dataService = new DataService();
@@ -68,7 +70,7 @@ namespace CustomIdentity.Identity
 
         Task<ApplicationUser> IUserStore<ApplicationUser>.FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
         {
-            return Task.FromResult(_dataService.GetUser(m => string.Equals(m.UserName ,normalizedUserName, StringComparison.OrdinalIgnoreCase)));
+            return Task.FromResult(_dataService.GetUser(m => string.Equals(m.UserName, normalizedUserName, StringComparison.OrdinalIgnoreCase)));
         }
 
         public void Dispose()
@@ -146,6 +148,44 @@ namespace CustomIdentity.Identity
         Task<bool> IUserPasswordStore<ApplicationUser>.HasPasswordAsync(ApplicationUser user, CancellationToken cancellationToken)
         {
             return Task.FromResult(user.PasswordHash != null);
+        }
+
+        /*============================================ UserClaimStore ============================================*/
+
+        Task<IList<Claim>> IUserClaimStore<ApplicationUser>.GetClaimsAsync(ApplicationUser user, CancellationToken cancellationToken)
+        {
+            return Task.FromResult((IList<Claim>)user.Claims);
+        }
+
+        Task IUserClaimStore<ApplicationUser>.AddClaimsAsync(ApplicationUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken)
+        {
+            _dataService.AddClaims(user, claims.ToList());
+
+            return Task.FromResult(true);
+        }
+
+        Task IUserClaimStore<ApplicationUser>.ReplaceClaimAsync(ApplicationUser user, Claim claim, Claim newClaim, CancellationToken cancellationToken)
+        {
+            _dataService.RemoveClaims(user, new List<Claim>() { claim });
+
+            _dataService.AddClaims(user, new List<Claim>() { newClaim });
+
+            return Task.FromResult(true);
+        }
+
+        Task IUserClaimStore<ApplicationUser>.RemoveClaimsAsync(ApplicationUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken)
+        {
+            _dataService.RemoveClaims(user, claims.ToList());
+
+            return Task.FromResult(true);
+        }
+
+        Task<IList<ApplicationUser>> IUserClaimStore<ApplicationUser>.GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken)
+        {
+            return Task.Run(
+                () => (IList<ApplicationUser>) _dataService.GetUsers()
+                    .Where(u => u.Claims.FirstOrDefault(c => c.Type == claim.Type && c.Value == claim.Value) != null)
+                    .ToList(), cancellationToken);
         }
     }
 }

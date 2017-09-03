@@ -1,4 +1,7 @@
-﻿namespace CustomIdentity
+﻿using System.Collections.Generic;
+using System.Security.Claims;
+
+namespace CustomIdentity
 {
     public class ApplicationUser
     {
@@ -13,5 +16,7 @@
         public string PasswordHash { get; set; }
         public bool TwoFactorEnabled { get; set; }
         public string City { get; set; }
+
+        public List<Claim> Claims { get; set; }
     }
 }

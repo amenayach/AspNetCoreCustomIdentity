@@ -33,7 +33,6 @@ namespace CustomIdentity.Controllers
                 {
                     return Ok(new { LoginSuccess = true });
                 }
-
             }
 
             return BadRequest("Invalid login attempt!");
@@ -60,11 +59,25 @@ namespace CustomIdentity.Controllers
 
             return BadRequest("Invalid login attempt!");
         }
-        // GET api/values
-        [HttpGet]
-        public IEnumerable<string> Login()
+
+        [Route("logout")]
+        [HttpPost]
+        public async Task<IActionResult> Logout()
         {
-            return new string[] { "value1", "value2" };
+            await _signInManager.SignOutAsync();
+            return Ok(new { Success = true });
+        }
+
+        [Authorize]
+        [Route("test")]
+        [HttpGet]
+        public ActionResult Test()
+        {
+            return Ok(User.Claims.Select(m => new
+            {
+                m.Type,
+                m.Value
+            }).ToList());
         }
 
     }
