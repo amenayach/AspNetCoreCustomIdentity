@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using Newtonsoft.Json.Linq;
 
 namespace CustomIdentity.Identity
 {
@@ -29,6 +31,8 @@ namespace CustomIdentity.Identity
 
             _users.Add(user);
 
+            SaveUsers();
+
             return user;
         }
 
@@ -40,12 +44,16 @@ namespace CustomIdentity.Identity
             targetUser.City = user.City;
             targetUser.Email = user.Email;
 
+            SaveUsers();
+
             return user;
         }
 
         public void DeleteUser(ApplicationUser user)
         {
             _users = _users.Where(m => m.Id != user.Id).ToList();
+
+            SaveUsers();
         }
 
         public void AddClaim(ApplicationUser user, Claim claim)
@@ -53,6 +61,8 @@ namespace CustomIdentity.Identity
             if (user.Claims == null) user.Claims = new List<Claim>();
 
             user.Claims.Add(claim);
+
+            SaveUsers();
         }
 
         public void AddClaims(ApplicationUser user, List<Claim> claims)
@@ -60,6 +70,8 @@ namespace CustomIdentity.Identity
             if (user.Claims == null) user.Claims = new List<Claim>();
 
             user.Claims.AddRange(claims);
+
+            SaveUsers();
         }
 
         public void RemoveClaims(ApplicationUser user, List<Claim> claims)
@@ -69,11 +81,20 @@ namespace CustomIdentity.Identity
             var types = claims.Select(m => m.Type).ToList();
 
             user.Claims.RemoveAll(m => types.Contains(m.Type));
+
+            SaveUsers();
         }
 
         public List<ApplicationUser> GetUsers()
         {
             return _users;
+        }
+
+        private void SaveUsers()
+        {
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "data.json");
+
+            File.WriteAllText(filePath, JArray.FromObject(_users).ToString());
         }
     }
 }
